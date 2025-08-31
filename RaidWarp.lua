@@ -36,7 +36,7 @@ local RAIDS = {
 if not RaidWarpDB then RaidWarpDB = {} end
 
 -- =========================
--- Main draggable button
+-- Main button (draggable)
 -- =========================
 local mainBtn = CreateFrame("Button", "RaidWarpBtn", UIParent, "UIPanelButtonTemplate")
 mainBtn:SetSize(120, 25)
@@ -52,23 +52,20 @@ mainBtn:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
 -- =========================
 -- Popup frame
 -- =========================
-local frame = CreateFrame("Frame", "RaidWarpFrame", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+local frame = CreateFrame("Frame", "RaidWarpFrame", UIParent, "BackdropTemplate")
 frame:SetSize(820, 500)
 frame:SetPoint("CENTER")
 frame:EnableMouse(true)
-frame:SetMovable(true)
-frame:SetBackdrop({
-    bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-    edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-    tile = true, tileSize = 16, edgeSize = 16,
-    insets = { left = 4, right = 4, top = 4, bottom = 4 }
-})
-frame:SetBackdropColor(0,0,0,0.9)
 frame:Hide()
 
-frame:RegisterForDrag("LeftButton")
-frame:SetScript("OnDragStart", function(self) self:StartMoving() end)
-frame:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
+frame.bg = frame:CreateTexture(nil, "BACKGROUND")
+frame.bg:SetAllPoints(true)
+frame.bg:SetColorTexture(0, 0, 0, 0.85)
+
+-- Title
+local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+title:SetPoint("TOP", 0, -10)
+title:SetText("Raid Warp Menu")
 
 -- Close button
 local closeBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
@@ -76,16 +73,6 @@ closeBtn:SetSize(60, 20)
 closeBtn:SetText("Close")
 closeBtn:SetPoint("TOPRIGHT", -10, -10)
 closeBtn:SetScript("OnClick", function() frame:Hide() end)
-
--- Reset button
-local resetBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-resetBtn:SetSize(60, 20)
-resetBtn:SetText("Reset")
-resetBtn:SetPoint("TOPLEFT", 10, -10)
-resetBtn:SetScript("OnClick", function()
-    wipe(RaidWarpDB)
-    RenderList()
-end)
 
 -- =========================
 -- Scroll area
@@ -102,46 +89,45 @@ scroll:SetScrollChild(content)
 -- Expansion row colors
 -- =========================
 local EXP_COLORS = {
-    Classic = {0.6, 0.45, 0.2, 0.65},  -- vàng nâu, alpha 65%
-    TBC     = {0.0, 0.6, 0.0, 0.65},  -- xanh lá đậm
+    Classic = {0.6, 0.45, 0.2, 0.65},  -- vàng nâu
+    TBC     = {0.0, 0.6, 0.0, 0.65},  -- xanh lá
     WotLK   = {0.0, 0.4, 0.8, 0.65},  -- xanh dương
 }
 
 -- =========================
 -- Render list
 -- =========================
-function RenderList()
+local function RenderList()
     for _, child in ipairs({content:GetChildren()}) do child:Hide() end
 
-    local y = 0
+    local y = -5
     local rowHeight = 28
 
-    -- header
+    -- Header
     local header = CreateFrame("Frame", nil, content)
     header:SetSize(760, 25)
     header:SetPoint("TOPLEFT", 0, y)
-    local h1 = header:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    h1:SetPoint("LEFT", 0, 0); h1:SetText("Raid Name")
-    local h2 = header:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    h2:SetPoint("LEFT", 260, 0); h2:SetText("Expansion")
-    local h3 = header:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    h3:SetPoint("LEFT", 360, 0); h3:SetText("Patch")
-    local h4 = header:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    h4:SetPoint("LEFT", 430, 0); h4:SetText("Tier Set")
-    local h5 = header:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    h5:SetPoint("LEFT", 520, 0); h5:SetText("Difficulty")
+    local labels = {"Raid", "Expansion", "Patch", "Tier Set", "Difficulty"}
+    local xPos = {0, 260, 360, 430, 520}
+    for i, label in ipairs(labels) do
+        local h = header:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        h:SetPoint("LEFT", xPos[i], 0)
+        h:SetText(label)
+    end
     y = y - rowHeight
 
+    -- Rows
     for _, raid in ipairs(RAIDS) do
-        local row = CreateFrame("Frame", nil, content, BackdropTemplateMixin and "BackdropTemplate" or nil)
+        local row = CreateFrame("Frame", nil, content)
         row:SetSize(760, 25)
         row:SetPoint("TOPLEFT", 0, y)
         y = y - rowHeight
 
-        -- row color by expansion
-        local color = EXP_COLORS[raid.exp] or {0,0,0,0}
-        row:SetBackdrop({ bgFile = "Interface/Tooltips/UI-Tooltip-Background" })
-        row:SetBackdropColor(unpack(color))
+        -- màu nền theo expansion
+        local color = EXP_COLORS[raid.exp] or {0.2, 0.2, 0.2, 0.5}
+        local bg = row:CreateTexture(nil, "BACKGROUND")
+        bg:SetAllPoints(true)
+        bg:SetColorTexture(unpack(color))
 
         local txt = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
         txt:SetPoint("LEFT", 0, 0)
@@ -164,15 +150,15 @@ function RenderList()
         tier:SetText(raid.tier)
 
         -- Warp button
-        local btn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-        btn:SetSize(60, 20)
-        btn:SetText("Warp")
-        btn:SetPoint("RIGHT", -80, 0)
-        btn:SetScript("OnClick", function()
-            SendChatMessage(raid.tele, "SAY")
+        local warpBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+        warpBtn:SetSize(60, 20)
+        warpBtn:SetText("Warp")
+        warpBtn:SetPoint("RIGHT", -80, 0)
+        warpBtn:SetScript("OnClick", function()
+            C_ChatInfo.SendChatMessage(raid.tele, "SAY")
         end)
 
-        -- Check/Uncheck toggle button
+        -- Check button
         local checkBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
         checkBtn:SetSize(70, 20)
         checkBtn:SetPoint("RIGHT", -5, 0)
@@ -181,16 +167,13 @@ function RenderList()
             if RaidWarpDB[raid.name] then
                 checkBtn:SetText("✓Done")
                 checkBtn:SetNormalFontObject("GameFontHighlight")
-                checkBtn:SetNormalTexture("Interface\\Buttons\\UI-Panel-Button-Up")
-                checkBtn:GetNormalTexture():SetVertexColor(0, 0.8, 0) -- xanh lá nền nút
             else
                 checkBtn:SetText("Check")
-                checkBtn:SetBackdrop({ bgFile = "Interface/Buttons/UI-Panel-Button-Up" })
-                checkBtn:GetNormalTexture():SetVertexColor(1, 1, 1) -- trắng mặc định
+                checkBtn:SetNormalFontObject("GameFontNormal")
             end
         end
 
-        checkBtn:SetScript("OnClick", function(self)
+        checkBtn:SetScript("OnClick", function()
             if RaidWarpDB[raid.name] then
                 RaidWarpDB[raid.name] = nil
             else
@@ -201,9 +184,7 @@ function RenderList()
 
         UpdateCheckState()
     end
-
-    local totalHeight = (#RAIDS * rowHeight) + 10
-    content:SetHeight(totalHeight)
+    content:SetHeight(-y)
 end
 
 -- =========================

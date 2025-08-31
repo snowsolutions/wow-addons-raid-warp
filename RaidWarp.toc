@@ -1,8 +1,8 @@
-## Interface: 30300
-## Title: RaidWarp
-## Notes: Quick teleport to all raids
+## Interface: 110200
+## Title: Raid Warp
+## Notes: Quick teleport to raid entrances (GM only)
 ## Author: You
 ## Version: 1.1
 ## SavedVariables: RaidWarpDB
-RaidWarp.lua
 
+RaidWarp.lua
